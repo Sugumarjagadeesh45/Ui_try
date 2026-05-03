@@ -1,194 +1,145 @@
-import React, { useState } from 'react';
-import { AppBar, Toolbar, Typography, Button, Container, Box, IconButton, useScrollTrigger, Drawer, List, ListItem, ListItemText, useTheme, useMediaQuery } from '@mui/material';
-import { Menu as MenuIcon, User, Search, X } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { useTheme } from '../ThemeContext';
 
 const Header = () => {
+  const [scrolled, setScrolled] = useState(true);
   const [mobileOpen, setMobileOpen] = useState(false);
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  
-  const trigger = useScrollTrigger({
-    disableHysteresis: true,
-    threshold: 50,
-  });
+  const [activeSection, setActiveSection] = useState('home');
+  const { mode, toggleTheme } = useTheme();
 
-  const handleDrawerToggle = () => {
-    setMobileOpen(!mobileOpen);
+  useEffect(() => {
+    let ticking = false;
+    const handleScroll = () => {
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          const currentScrollY = window.scrollY;
+
+          // Header always has background - keep visible at all times
+          setScrolled(true);
+
+          const sections = document.querySelectorAll('section[id]');
+          let current = 'home';
+          sections.forEach(section => {
+            const sectionTop = section.offsetTop;
+            if (currentScrollY >= sectionTop - 300) {
+              current = section.getAttribute('id');
+            }
+          });
+          setActiveSection(current);
+          ticking = false;
+        });
+        ticking = true;
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  const handleNavClick = (e, href) => {
+    e.preventDefault();
+    const target = document.querySelector(href);
+    if (target) {
+      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      setMobileOpen(false);
+    }
   };
 
-  const navItems = ['Explore', 'Features', 'Community', 'About'];
+  const navItems = [
+    { href: '#home', label: 'Home' },
+    { href: '#friends', label: 'Friends' },
+    { href: '#trending', label: 'Trending' },
+    { href: '#create', label: 'Create' },
+    { href: '#chat', label: 'Chat' },
+    { href: '#subscription', label: 'Pricing' },
+    { href: '#history', label: 'History' },
+    { href: '#contact', label: 'Contact' },
+  ];
 
   return (
     <>
-      <AppBar 
-        position="fixed" 
-        sx={{
-          background: trigger ? 'rgba(15, 23, 42, 0.8)' : 'transparent',
-          backdropFilter: trigger ? 'blur(15px)' : 'none',
-          boxShadow: trigger ? '0 4px 30px rgba(0, 0, 0, 0.1)' : 'none',
-          transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
-          borderBottom: trigger ? '1px solid rgba(255, 255, 255, 0.05)' : 'none',
-          color: '#fff',
-        }}
-      >
-        <Container maxWidth="lg">
-          <Toolbar disableGutters sx={{ justifyContent: 'space-between', height: trigger ? 70 : 90, transition: 'height 0.4s' }}>
-            <Box sx={{ display: 'flex', alignItems: 'center' }}>
-              <Typography
-                variant="h5"
-                noWrap
-                component="div"
-                sx={{
-                  fontWeight: 900,
-                  letterSpacing: '-1px',
-                  background: 'linear-gradient(45deg, #FF4D4D, #FF8E53)',
-                  WebkitBackgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent',
-                  cursor: 'pointer',
-                  fontSize: '1.75rem'
-                }}
-              >
-                SYNCZO
-              </Typography>
-            </Box>
+      <nav className={`navbar ${scrolled ? 'scrolled' : ''}`} id="navbar">
+        <div className="nav-container">
+          {/* Logo */}
+          <a href="#home" className="nav-logo" onClick={(e) => handleNavClick(e, '#home')}>
+            <div className="nav-logo-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M2 6c.6.5 1.2 1 2.5 1C7 7 7 5 9.5 5c2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"/>
+                <path d="M2 12c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"/>
+                <path d="M2 18c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"/>
+              </svg>
+            </div>
+            <span className="nav-logo-text">Synczo Wave</span>
+          </a>
 
-            <Box sx={{ display: { xs: 'none', md: 'flex' }, gap: 4 }}>
-              {navItems.map((item) => (
-                <Button
-                  key={item}
-                  sx={{
-                    color: '#94a3b8',
-                    fontWeight: 600,
-                    textTransform: 'none',
-                    fontSize: '0.95rem',
-                    position: 'relative',
-                    '&:hover': {
-                      color: '#fff',
-                      background: 'transparent',
-                      '&::after': {
-                        width: '100%'
-                      }
-                    },
-                    '&::after': {
-                      content: '""',
-                      position: 'absolute',
-                      bottom: 0,
-                      left: 0,
-                      width: '0%',
-                      height: '2px',
-                      background: '#FF4D4D',
-                      transition: 'width 0.3s ease'
-                    }
-                  }}
+          {/* Desktop Navigation - Centered Pill */}
+          <ul className="nav-links" id="navLinks">
+            {navItems.map((item) => (
+              <li key={item.href}>
+                <a
+                  href={item.href}
+                  className={`nav-link ${activeSection === item.href.replace('#', '') ? 'active' : ''}`}
+                  onClick={(e) => handleNavClick(e, item.href)}
                 >
-                  {item}
-                </Button>
-              ))}
-            </Box>
+                  {item.label}
+                </a>
+              </li>
+            ))}
+          </ul>
 
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 0.5, sm: 2 } }}>
-              <IconButton sx={{ color: '#fff', '&:hover': { background: 'rgba(255, 255, 255, 0.05)' } }}>
-                <Search size={20} />
-              </IconButton>
-              
-              {!isMobile && (
-                <>
-                  <IconButton sx={{ color: '#fff', '&:hover': { background: 'rgba(255, 255, 255, 0.05)' } }}>
-                    <User size={20} />
-                  </IconButton>
-                  <Button
-                    variant="contained"
-                    sx={{
-                      borderRadius: '12px',
-                      px: 3,
-                      py: 1,
-                      background: 'linear-gradient(45deg, #FF4D4D, #FF8E53)',
-                      color: '#fff',
-                      fontWeight: 700,
-                      textTransform: 'none',
-                      boxShadow: '0 8px 20px rgba(255, 77, 77, 0.25)',
-                      '&:hover': {
-                        transform: 'translateY(-2px)',
-                        boxShadow: '0 12px 25px rgba(255, 77, 77, 0.35)',
-                        background: 'linear-gradient(45deg, #FF4D4D, #FF8E53)',
-                      }
-                    }}
-                  >
-                    Get Started
-                  </Button>
-                </>
+          {/* Right Actions */}
+          <div className="nav-actions">
+            <button className="theme-toggle" aria-label="Toggle theme" onClick={toggleTheme}>
+              {mode === 'dark' ? (
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/>
+                  <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+                  <line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/>
+                  <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+                </svg>
+              ) : (
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+                </svg>
               )}
+            </button>
+            <button className="btn btn-primary nav-cta">Get Started</button>
+            
+            <button className={`mobile-toggle ${mobileOpen ? 'active' : ''}`} aria-label="Toggle menu" onClick={() => setMobileOpen(!mobileOpen)}>
+              <span></span>
+              <span></span>
+            </button>
+          </div>
+        </div>
+      </nav>
 
-              {isMobile && (
-                <IconButton
-                  onClick={handleDrawerToggle}
-                  sx={{ color: '#fff', ml: 1 }}
-                >
-                  <MenuIcon />
-                </IconButton>
-              )}
-            </Box>
-          </Toolbar>
-        </Container>
-      </AppBar>
-
-      <Drawer
-        anchor="right"
-        open={mobileOpen}
-        onClose={handleDrawerToggle}
-        PaperProps={{
-          sx: {
-            width: '100%',
-            maxWidth: '300px',
-            background: '#0f172a',
-            color: '#fff',
-            p: 3
-          }
-        }}
-      >
-        <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 4 }}>
-          <IconButton onClick={handleDrawerToggle} sx={{ color: '#fff' }}>
-            <X size={24} />
-          </IconButton>
-        </Box>
-        <List>
+      {/* Mobile Menu Overlay */}
+      <div className={`mobile-menu-overlay ${mobileOpen ? 'active' : ''}`} onClick={() => setMobileOpen(false)}></div>
+      <div className={`mobile-menu ${mobileOpen ? 'active' : ''}`}>
+        <div className="mobile-menu-header">
+          <div className="nav-logo">
+            <div className="nav-logo-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M2 6c.6.5 1.2 1 2.5 1C7 7 7 5 9.5 5c2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"/><path d="M2 12c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"/><path d="M2 18c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"/></svg></div>
+            <span className="nav-logo-text">Synczo Wave</span>
+          </div>
+          <button className="mobile-menu-close" onClick={() => setMobileOpen(false)}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
+        </div>
+        <ul className="mobile-menu-links">
           {navItems.map((item) => (
-            <ListItem key={item} disablePadding sx={{ mb: 2 }}>
-              <Button
-                fullWidth
-                sx={{
-                  color: '#fff',
-                  justifyContent: 'flex-start',
-                  fontSize: '1.2rem',
-                  fontWeight: 600,
-                  textTransform: 'none',
-                  p: 1.5,
-                  borderRadius: '12px',
-                  '&:hover': { background: 'rgba(255, 255, 255, 0.05)' }
-                }}
-              >
-                {item}
-              </Button>
-            </ListItem>
+            <li key={item.href}>
+              <a href={item.href} className={`mobile-menu-link ${activeSection === item.href.replace('#', '') ? 'active' : ''}`} onClick={(e) => handleNavClick(e, item.href)}>
+                {item.label}
+              </a>
+            </li>
           ))}
-          <Box sx={{ mt: 4 }}>
-            <Button
-              fullWidth
-              variant="contained"
-              sx={{
-                borderRadius: '12px',
-                py: 2,
-                background: 'linear-gradient(45deg, #FF4D4D, #FF8E53)',
-                color: '#fff',
-                fontWeight: 700,
-                textTransform: 'none',
-              }}
-            >
-              Get Started
-            </Button>
-          </Box>
-        </List>
-      </Drawer>
+        </ul>
+        <div className="mobile-menu-footer">
+          <button className="btn btn-primary" style={{width: '100%'}}>Get Started</button>
+        </div>
+      </div>
     </>
   );
 };
